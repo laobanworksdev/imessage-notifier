@@ -1,0 +1,11 @@
+# Real, user-specific config — has the user's Apple ID; never commit.
+config/imessage-notify.conf
+
+# Per-session runtime state, only meaningful inside ~/.claude/hooks/.
+hooks/state/
+
+# macOS noise
+.DS_Store
+
+# Per-user Claude Code permissions, not for the repo
+.claude/settings.local.json

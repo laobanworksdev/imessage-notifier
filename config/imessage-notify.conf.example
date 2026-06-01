@@ -1,0 +1,18 @@
+# Config for imessage-notify.sh — sourced at hook runtime.
+# Copy this file to ~/.claude/hooks/imessage-notify.conf and edit.
+# Edits take effect on the next turn (no restart needed).
+
+# Apple ID (email or phone) that receives the notification.
+# Must be an iMessage destination linked to your devices —
+# i.e. you can already send/receive iMessages to/from this address
+# in Messages.app on this Mac.
+APPLE_ID="your-apple-id@example.com"
+
+# Minimum turn duration (in seconds) before a notification fires.
+# Turns shorter than this stay silent.
+#   0   = ping every turn
+#   30  = only skip trivial back-and-forth
+#   90  = skip "quick chat" turns
+#   300 = only ping on long jobs (default)
+#   600 = only "I went to lunch" jobs
+MIN_SECONDS=300
