@@ -6,7 +6,7 @@ This project packages an existing, working iMessage notifier so it can be reinst
 
 1. **macOS-only.** The notifier uses `osascript` and `Messages.app`. Do not add Linux/WSL paths. Do not port.
 2. **Bash 3.2 compatible.** macOS ships `/bin/bash` 3.2. No `mapfile`, no `${var^^}`, no associative arrays, no `[[ -v ]]`. Use POSIX-leaning idioms.
-3. **macOS-native tools only.** `osascript`, `/usr/bin/jq`, `/usr/bin/*`, builtins. No GNU coreutils flags. No Python. No Node.
+3. **macOS-native tools + jq.** `osascript`, `/usr/bin/*`, builtins, and `jq`. macOS does **not** ship `jq` and `/usr/bin` is SIP-protected, so `jq` is a Homebrew dependency (`brew install jq`) resolved at runtime by probing `/opt/homebrew/bin`, `/usr/local/bin`, then PATH. No GNU coreutils flags. No Python. No Node.
 4. **No PII committed.** The user's real Apple ID **never** lands in this repo. The example config uses `your-apple-id@example.com`. The real config (`~/.claude/hooks/imessage-notify.conf`) is created by `install.sh` from the example and is `.gitignore`d. If you see a real email address in a diff, stop and remove it. The shipped `hooks/imessage-notify.sh` therefore defaults `APPLE_ID=""` and exits silently if the config didn't override it — the live runtime copy installed by some users may differ if it pre-dates this repo.
 5. **Idempotent installer.** `install.sh` and `uninstall.sh` must be safe to run repeatedly. No clobbering existing user config. Settings patches dedupe by exact command match. The whole install must be reversible by the uninstaller.
 6. **Don't modify the live `~/.claude/hooks/*` files directly from this project.** Edit the copies in `hooks/` here, then re-run `install.sh` to deploy.

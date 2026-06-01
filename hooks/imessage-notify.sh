@@ -10,9 +10,16 @@ MIN_SECONDS=300
 CONFIG_FILE="$HOME/.claude/hooks/imessage-notify.conf"
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
 
+# Resolve jq: macOS ships it via Homebrew (not /usr/bin, which is SIP-protected),
+# and the hook's PATH may be minimal, so probe known locations explicitly.
+JQ="$(command -v jq 2>/dev/null || true)"
+for c in /opt/homebrew/bin/jq /usr/local/bin/jq /usr/bin/jq; do [ -n "$JQ" ] && break; [ -x "$c" ] && JQ="$c"; done
+
 input=$(cat)
-session_id=$(printf '%s' "$input" | /usr/bin/jq -r '.session_id // ""' 2>/dev/null)
-cwd=$(printf '%s' "$input" | /usr/bin/jq -r '.cwd // ""' 2>/dev/null)
+if [ -n "$JQ" ]; then
+  session_id=$(printf '%s' "$input" | "$JQ" -r '.session_id // ""' 2>/dev/null)
+  cwd=$(printf '%s' "$input" | "$JQ" -r '.cwd // ""' 2>/dev/null)
+fi
 [ -z "$cwd" ] && cwd=$(pwd)
 project=$(basename "$cwd")
 
