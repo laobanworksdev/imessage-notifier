@@ -50,6 +50,15 @@ If `APPLE_ID` is empty (e.g. the user never edited the freshly-installed `.conf`
 
 A short, chatty turn would spam iMessage. The `MIN_SECONDS` floor turns this into "alert me about long jobs only".
 
+## Message format
+
+Beyond `[Claude] <project> (<duration>)`, the Stop hook reads `transcript_path` from its stdin JSON and pulls two best-effort enrichment lines from the session transcript:
+
+- **📋 session name** — the most recent `ai-title` entry (Claude Code's auto-generated session title).
+- **✅ what's done** — the latest assistant message's `🎯` session-focus footer, emoji stripped and capped to ~12 words.
+
+If `jq` is missing, the transcript is unreadable, or neither line is found, the message falls back to the original single line `[Claude] <project>: turn done (<duration>)`. The Apple ID and the assembled (possibly multi-line) message are passed to `osascript` as `argv` — **not** interpolated into the AppleScript source — so quotes, backslashes, or newlines in a title can't break or inject into the send (see Known limitations #2).
+
 ## Failure modes
 
 | What can fail | What happens | What you see |
@@ -70,9 +79,9 @@ These were caught in review and are documented here rather than fixed. None of t
 | # | Where | What | Impact | Fix sketch |
 |---|---|---|---|---|
 | 1 | `hooks/imessage-notify.sh:11` | `. "$CONFIG_FILE"` runs the conf file in the current shell. A syntax error or a failing command in a user-edited `.conf` could short-circuit the rest of the hook. | Low. The hook has no `set -e`, so most malformed configs only print to stderr (which is suppressed) and the script proceeds with defaults. A *failing* command (rare) would skip the send. | Wrap as `. "$CONFIG_FILE" 2>/dev/null \|\| true` to fully match the fail-quiet contract. |
-| 2 | `hooks/imessage-notify.sh:48-49` | `${APPLE_ID}` and `${msg}` (which embeds `${project}` from `basename "$cwd"`) are interpolated raw into an `osascript` heredoc. A `"` or `\` in either field produces broken AppleScript. | Cosmetic on your own machine — `osascript` errors get swallowed, hook still exits 0, no notification fires for that turn. Not exploitable: `APPLE_ID` is your config, `project` is your own directory name. | Either escape both with `sed 's/[\\"]/\\&/g'` before interpolation, or reject values containing `"` or `\` and exit 0 silently. |
+| 2 | ~~`hooks/imessage-notify.sh`~~ | **FIXED.** The Apple ID and the (possibly multi-line) message are now passed to `osascript` as `argv` via `on run argv`, instead of being interpolated into the AppleScript heredoc. A `"`, `\`, or newline in any field can no longer break or inject into the send. | Resolved. | — |
 | 3 | `install.sh:73-95` | The installer copies hook scripts and creates the conf file *before* it validates that `~/.claude/settings.json` is parseable JSON. If the JSON is malformed, install aborts at the patch step but has already done filesystem work. | Minor. Re-running install after the user fixes the JSON cleans up via the dedup logic, so no permanent harm. A user who deletes the malformed file and starts fresh sees half-installed hook scripts. | Reorder: validate `DST_SETTINGS` JSON first, then do filesystem work. |
-| 4 | `README.md` failure-modes table | Doesn't mention the AppleScript-quoting case from limitation #2. | Documentation only. | Add a row: "`APPLE_ID` or project name contains `\"` or `\\` → osascript errors, hook silent, no notification." |
+| 4 | `README.md` failure-modes table | **MOOT** after #2's fix — there is no longer an AppleScript-quoting failure mode to document. | None. | — |
 
 Verdict from the standalone review against `.claude/guidelines/review.md`: **APPROVE WITH NITS** — every hard-fail criterion met (no PII committed, bash 3.2 compatible, idempotent install, settings.json round-trips byte-identical, peer hooks on the same events survive install/uninstall, all hook stdin shapes exit 0).
 

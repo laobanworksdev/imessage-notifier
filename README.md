@@ -37,7 +37,11 @@ Save. Done. The next long task in Claude Code will text you when it finishes.
 
 Run a task that takes more than 5 minutes. When it finishes, you'll get an iMessage like:
 
-> [Claude] my-project: turn done (8m12s)
+> [Claude] my-project (8m12s)
+> 📋 Add session name + what's-done to notifier
+> ✅ Built + hardened the self-contained work-laptop prompt
+
+Line 1 is the project and how long the turn took. Line 2 (📋) is the session's auto-generated name. Line 3 (✅) is a ~10-word recap of what just got done, taken from the assistant's own session-focus line. The last two lines appear only when that info is available; otherwise you just get the plain `turn done` line.
 
 If your task was shorter than 5 minutes, no message — that's by design (see below).
 
