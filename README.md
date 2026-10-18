@@ -82,3 +82,7 @@ It'll ask before deleting your config (since it has your Apple ID in it). The ho
 ## How does it actually work?
 
 For the architecture, time-sequence diagram, failure modes, and known limitations, see [DESIGN.md](DESIGN.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
