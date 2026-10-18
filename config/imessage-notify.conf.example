@@ -16,3 +16,9 @@ APPLE_ID="your-apple-id@example.com"
 #   300 = only ping on long jobs (default)
 #   600 = only "I went to lunch" jobs
 MIN_SECONDS=300
+
+# Add a 📝 line saying what this turn did: the headline of Claude's final
+# reply, up to 140 characters.
+#   1 = on (default)
+#   0 = off
+TURN_SUMMARY=1

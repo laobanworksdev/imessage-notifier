@@ -31,6 +31,6 @@ This project packages an existing, working iMessage notifier so it can be reinst
 
 ## Out of scope
 
-- No tests harness, no CI, no LICENSE, no CHANGELOG.
+- No tests harness, no CI, no CHANGELOG.
 - No `git init` from inside this project — leave that to the user.
 - Don't add a packaging system (`brew`, `npm`, etc.). The shell script *is* the install.

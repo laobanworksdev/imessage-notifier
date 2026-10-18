@@ -10,7 +10,7 @@ This repo is the **source of truth**. The active deployment lives at `~/.claude/
 |---|---|---|
 | `imessage-start.sh` | `~/.claude/hooks/imessage-start.sh` | UserPromptSubmit hook — records turn start. |
 | `imessage-notify.sh` | `~/.claude/hooks/imessage-notify.sh` | Stop hook — sends iMessage if elapsed ≥ `MIN_SECONDS`. |
-| `imessage-notify.conf` | `~/.claude/hooks/imessage-notify.conf` | Per-machine config (Apple ID + threshold). |
+| `imessage-notify.conf` | `~/.claude/hooks/imessage-notify.conf` | Per-machine config (Apple ID, threshold, 📝 on/off). |
 | state files | `~/.claude/hooks/state/start-<session_id>` | Per-session turn-start timestamps. Auto-cleaned. |
 | settings entries | `~/.claude/settings.json` (`hooks.UserPromptSubmit`, `hooks.Stop`) | How Claude Code finds the hooks. |
 
@@ -52,12 +52,13 @@ A short, chatty turn would spam iMessage. The `MIN_SECONDS` floor turns this int
 
 ## Message format
 
-Beyond `[Claude] <project> (<duration>)`, the Stop hook reads `transcript_path` from its stdin JSON and pulls two best-effort enrichment lines from the session transcript:
+Beyond `[Claude] <project> (<duration>)`, the Stop hook adds up to three best-effort enrichment lines, in this order:
 
-- **📋 session name** — the most recent `ai-title` entry (Claude Code's auto-generated session title).
-- **✅ what's done** — the latest assistant message's `🎯` session-focus footer, emoji stripped and capped to ~12 words.
+- **📋 session name** — the most recent `ai-title` entry in the transcript (`transcript_path`), i.e. Claude Code's auto-generated session title.
+- **📝 turn summary** — one plain-text headline of this turn's final reply, read from the Stop event's `last_assistant_message`. Rule: the last line starting with `result:` / `needs input:` / `failed:` (Claude Code's background-job status convention; the `result:` label is dropped, the other two are kept), else the first meaningful line (skipping blank lines, fenced code blocks, table rows, horizontal rules and `🎯`/`📝` footer lines). Markdown (`**`, `__`, backticks, heading/list/quote markers, `[text](url)`) is stripped, whitespace collapsed, and the result capped at 140 characters at a word boundary with `…`. The capping happens in `jq`, which counts Unicode code points, so emoji and CJK are never split mid-character. Older Claude Code versions don't send `last_assistant_message`; then the hook reads the transcript's last 400 lines and uses the last assistant text block, but only if it was written after the last real user prompt (a non-meta `user` entry with text, not a tool result) — otherwise the line is omitted rather than repeating an old reply. `TURN_SUMMARY=0` in the conf turns the line off.
+- **✅ what's done** — the latest assistant message's `🎯` session-focus footer from the transcript, emoji stripped and capped to ~12 words.
 
-If `jq` is missing, the transcript is unreadable, or neither line is found, the message falls back to the original single line `[Claude] <project>: turn done (<duration>)`. The Apple ID and the assembled (possibly multi-line) message are passed to `osascript` as `argv` — **not** interpolated into the AppleScript source — so quotes, backslashes, or newlines in a title can't break or inject into the send (see Known limitations #2).
+All enrichment runs only after the elapsed-time and `APPLE_ID` gates, so short turns pay nothing. If `jq` is missing, or none of the three lines is found, the message falls back to the original single line `[Claude] <project>: turn done (<duration>)`. The Apple ID and the assembled (possibly multi-line) message are passed to `osascript` as `argv` — **not** interpolated into the AppleScript source — so quotes, backslashes, or newlines in a title can't break or inject into the send (see Known limitations #2).
 
 ## Failure modes
 
@@ -78,7 +79,7 @@ These were caught in review and are documented here rather than fixed. None of t
 
 | # | Where | What | Impact | Fix sketch |
 |---|---|---|---|---|
-| 1 | `hooks/imessage-notify.sh:11` | `. "$CONFIG_FILE"` runs the conf file in the current shell. A syntax error or a failing command in a user-edited `.conf` could short-circuit the rest of the hook. | Low. The hook has no `set -e`, so most malformed configs only print to stderr (which is suppressed) and the script proceeds with defaults. A *failing* command (rare) would skip the send. | Wrap as `. "$CONFIG_FILE" 2>/dev/null \|\| true` to fully match the fail-quiet contract. |
+| 1 | `hooks/imessage-notify.sh:20` | `. "$CONFIG_FILE"` runs the conf file in the current shell. A syntax error or a failing command in a user-edited `.conf` could short-circuit the rest of the hook. | Low. The hook has no `set -e`, so most malformed configs only print to stderr (which is suppressed) and the script proceeds with defaults. A *failing* command (rare) would skip the send. | Wrap as `. "$CONFIG_FILE" 2>/dev/null \|\| true` to fully match the fail-quiet contract. |
 | 2 | ~~`hooks/imessage-notify.sh`~~ | **FIXED.** The Apple ID and the (possibly multi-line) message are now passed to `osascript` as `argv` via `on run argv`, instead of being interpolated into the AppleScript heredoc. A `"`, `\`, or newline in any field can no longer break or inject into the send. | Resolved. | — |
 | 3 | `install.sh:73-95` | The installer copies hook scripts and creates the conf file *before* it validates that `~/.claude/settings.json` is parseable JSON. If the JSON is malformed, install aborts at the patch step but has already done filesystem work. | Minor. Re-running install after the user fixes the JSON cleans up via the dedup logic, so no permanent harm. A user who deletes the malformed file and starts fresh sees half-installed hook scripts. | Reorder: validate `DST_SETTINGS` JSON first, then do filesystem work. |
 | 4 | `README.md` failure-modes table | **MOOT** after #2's fix — there is no longer an AppleScript-quoting failure mode to document. | None. | — |
