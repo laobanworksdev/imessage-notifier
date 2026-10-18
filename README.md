@@ -39,9 +39,10 @@ Run a task that takes more than 5 minutes. When it finishes, you'll get an iMess
 
 > [Claude] my-project (8m12s)
 > 📋 Add session name + what's-done to notifier
+> 📝 Fixed the pager's off-by-one and re-ran the test suite; all green.
 > ✅ Built + hardened the self-contained work-laptop prompt
 
-Line 1 is the project and how long the turn took. Line 2 (📋) is the session's auto-generated name. Line 3 (✅) is a ~10-word recap of what just got done, taken from the assistant's own session-focus line. The last two lines appear only when that info is available; otherwise you just get the plain `turn done` line.
+Line 1 is the project and how long the turn took. 📋 is the session's auto-generated name. 📝 is what this turn did: the headline of Claude's final reply (its `result:` / `needs input:` / `failed:` line if it wrote one, otherwise its first real sentence), up to 140 characters. ✅ is a ~10-word recap of the session's focus, taken from the assistant's own session-focus line. Each of those three lines appears only when its info is available; with none of them you just get the plain `turn done` line.
 
 If your task was shorter than 5 minutes, no message — that's by design (see below).
 
@@ -58,6 +59,8 @@ Edit `~/.claude/hooks/imessage-notify.conf` and change `MIN_SECONDS`:
 | `600` | Only "I went to lunch" jobs |
 
 Saves take effect on the very next turn — no restart needed.
+
+Don't want the 📝 line? Set `TURN_SUMMARY=0` in the same file (add the line if your config predates it).
 
 ## Remove it
 
